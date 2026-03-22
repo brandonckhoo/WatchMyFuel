@@ -58,8 +58,8 @@
 <body class="bg-surface text-on-surface font-body min-h-screen">
 
 <!-- ── HEADER ── -->
-<header class="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-outline-variant/20 shadow-sm">
-  <div class="flex justify-between items-center px-6 py-3.5 max-w-7xl mx-auto">
+<header class="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-outline-variant/20 shadow-sm" style="height:64px">
+  <div class="flex justify-between items-center px-6 max-w-7xl mx-auto h-full">
     <div class="text-xl font-black text-primary font-headline tracking-tight">Watch My Fuel</div>
     <nav class="hidden md:flex items-center gap-1">
       <a class="tab-link tab-active font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg" data-tab="map">Map</a>
@@ -473,8 +473,9 @@ function initMap(lat, lng, stations) {
       className:'', iconAnchor:[28,14],
       html:`<div class="price-pin" style="background:${color}">${cheapest.price.toFixed(1)}</div>`
     });
+    const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((cheapest.address ? cheapest.address + ', ' : '') + suburb + ', QLD')}`;
     L.marker([sLat,sLng],{icon}).addTo(leafletMap)
-      .bindPopup(`<b>${suburb}</b><br>${cheapest.brand}<br>${cheapest.fuelType}: <b>${cheapest.price.toFixed(1)}¢/L</b>`);
+      .bindPopup(`<b>${cheapest.name || cheapest.brand}</b><br><span style="color:#707882;font-size:12px">${cheapest.address ? cheapest.address + ', ' : ''}${suburb}</span><br><b>${cheapest.fuelType}: ${cheapest.price.toFixed(1)}¢/L</b><br><a href="${mapsLink}" target="_blank" style="color:#005f9d;font-size:12px">Open in Google Maps →</a>`);
   });
 }
 
@@ -487,11 +488,15 @@ function renderStationList(stations) {
   el.innerHTML = stations.map(s => {
     const pct = (s.price - pMin) / (pMax - pMin + 0.001);
     const cls = pct < 0.33 ? 'text-green-600' : pct < 0.66 ? 'text-amber-600' : 'text-red-600';
-    return `<div class="station-card bg-white rounded-xl p-4 cursor-pointer shadow-sm transition-colors">
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((s.address ? s.address + ', ' : '') + s.suburb + ', QLD')}`;
+    return `<div class="station-card bg-white rounded-xl p-4 shadow-sm transition-colors">
       <div class="flex justify-between items-start gap-3">
-        <div class="min-w-0">
+        <div class="min-w-0 flex-1">
           <p class="font-headline font-bold text-on-surface truncate">${s.brand}</p>
-          <p class="text-on-surface-variant text-xs truncate">${s.suburb} · ${s.name}</p>
+          <p class="text-on-surface-variant text-xs truncate mb-1">${s.name}</p>
+          <a href="${mapsUrl}" target="_blank" rel="noopener" class="text-primary text-xs hover:underline flex items-center gap-0.5">
+            <span class="material-symbols-outlined" style="font-size:13px">location_on</span>${s.address ? s.address + ', ' : ''}${s.suburb}
+          </a>
         </div>
         <div class="flex flex-col items-end shrink-0">
           <span class="font-headline font-black text-xl ${cls}">${s.price.toFixed(1)}¢</span>
