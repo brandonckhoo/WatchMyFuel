@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Watch My Fuel | Find Cheap Fuel Near You</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#005f9d",
+          "primary-container": "#0079c5",
+          "on-primary": "#ffffff",
+          "secondary": "#006399",
+          "surface": "#f9f9f9",
+          "surface-container-lowest": "#ffffff",
+          "surface-container-low": "#f3f4f3",
+          "surface-container": "#edeeee",
+          "surface-container-high": "#e7e8e8",
+          "surface-container-highest": "#e2e3e2",
+          "on-surface": "#1a1c1c",
+          "on-surface-variant": "#404751",
+          "outline": "#707882",
+          "outline-variant": "#c0c7d3",
+          "error": "#ba1a1a",
+        },
+        fontFamily: { "headline": ["Space Grotesk"], "body": ["Inter"] },
+        borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px" },
+      },
+    },
+  }
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; display:inline-block; line-height:1; }
+  .glass-panel { background:rgba(255,255,255,0.88); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
+  #leaflet-map { height:480px; border-radius:16px; z-index:1; }
+  .price-pin { padding:3px 9px; border-radius:999px; font-weight:700; font-size:12px; font-family:'Space Grotesk',sans-serif; color:white; box-shadow:0 2px 8px rgba(0,0,0,0.25); white-space:nowrap; }
+  .chip-active { background:#005f9d !important; color:white !important; }
+  .chip-inactive { background:#edeeee; color:#404751; }
+  .view { display:none; }
+  .view.active { display:block; }
+  .tab-active { color:#005f9d; border-bottom:2px solid #005f9d; }
+  .tab-inactive { color:#404751; border-bottom:2px solid transparent; }
+  .station-card:hover { background:#f3f4f3; }
+  tr:hover td { background:#f3f4f3; }
+  ::-webkit-scrollbar { width:6px; } ::-webkit-scrollbar-thumb { background:#e2e3e2; border-radius:9999px; }
+</style>
+</head>
+<body class="bg-surface text-on-surface font-body min-h-screen">
+
+<!-- ── HEADER ── -->
+<header class="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-outline-variant/20 shadow-sm">
+  <div class="flex justify-between items-center px-6 py-3.5 max-w-7xl mx-auto">
+    <div class="text-xl font-black text-primary font-headline tracking-tight">Watch My Fuel</div>
+    <nav class="hidden md:flex items-center gap-1">
+      <a class="tab-link tab-active font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg" data-tab="map">Map</a>
+      <a class="tab-link tab-inactive font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg hover:bg-surface-container-low" data-tab="prices">Prices</a>
+      <a class="tab-link tab-inactive font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg hover:bg-surface-container-low" data-tab="trends">Trends</a>
+    </nav>
+    <span id="data-status" class="text-xs bg-surface-container px-3 py-1.5 rounded-full text-on-surface-variant">Loading data…</span>
+  </div>
+</header>
+
+<main class="pt-16">
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- VIEW: MAP                              -->
+  <!-- ══════════════════════════════════════ -->
+  <div id="view-map" class="view active">
+
+    <!-- Search Hero -->
+    <div id="search-hero">
+      <section class="relative min-h-[580px] flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0">
+          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-surface/60 to-surface z-10"></div>
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdqId7UnhBHPiRLDRI4fseMprUg5vnca7mQEigH2WuOOa_INUR3dPx6xGTo1a6KOqpcVL13ZLOylzBFPJwpu71s4-zL5qoHxeDHR3SsHRW4F3TMXfySgbLb2SMhvbSFHSdPZC6z0rGLSDNJW3kLT0JdYKeXSXCZNvEPKkTKgNp1sODZsyCIfm90ZwMQfXdgX4fBFlBgIgqRhbLhd87hhvqodRLqZOxrqlkdCytPKor1hQKe9H6lnnY6928TF706yGEM9BG7TegsgQ" alt="" class="w-full h-full object-cover opacity-25 saturate-50"/>
+        </div>
+        <div class="relative z-20 max-w-2xl mx-auto px-6 text-center w-full">
+          <h1 class="font-headline font-bold text-5xl text-on-surface tracking-tight mb-3">Find cheap fuel near you</h1>
+          <p class="text-on-surface-variant text-lg mb-10">Enter your address or suburb to see live prices nearby</p>
+
+          <div class="glass-panel w-full rounded-full p-2 shadow-lg border border-white/30 mb-6 relative">
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary">location_on</span>
+                <input id="search-input" class="w-full pl-14 pr-4 py-4 bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-outline text-lg" placeholder="e.g. Narangba QLD 4504" type="text" autocomplete="off"/>
+              </div>
+              <button id="search-btn" class="bg-gradient-to-r from-primary to-primary-container text-white px-8 py-4 rounded-full font-headline font-bold hover:opacity-90 transition-all shadow-md whitespace-nowrap">
+                Find Fuel
+              </button>
+            </div>
+            <div id="autocomplete-dropdown" class="hidden absolute top-full left-0 right-0 bg-white rounded-2xl shadow-xl border border-outline-variant/20 mt-2 z-50 overflow-hidden"></div>
+          </div>
+
+          <div class="flex flex-wrap justify-center items-center gap-3 mb-6">
+            <span class="text-on-surface-variant text-sm font-semibold uppercase tracking-wider">Radius:</span>
+            <div class="flex bg-surface-container-low p-1 rounded-full gap-1" id="radius-group">
+              <button class="radius-chip chip-inactive px-5 py-2 rounded-full text-sm font-medium transition-colors" data-km="2">2km</button>
+              <button class="radius-chip chip-inactive px-5 py-2 rounded-full text-sm font-medium transition-colors" data-km="5">5km</button>
+              <button class="radius-chip chip-active px-5 py-2 rounded-full text-sm font-medium transition-colors" data-km="10">10km</button>
+              <button class="radius-chip chip-inactive px-5 py-2 rounded-full text-sm font-medium transition-colors" data-km="20">20km</button>
+            </div>
+          </div>
+
+          <button id="use-location-btn" class="flex items-center gap-2 text-primary font-semibold hover:underline mx-auto">
+            <span class="material-symbols-outlined text-xl">my_location</span>Use my current location
+          </button>
+        </div>
+      </section>
+
+      <!-- Recent Searches -->
+      <section class="max-w-7xl mx-auto px-6 -mt-8 pb-24 relative z-10">
+        <div class="bg-surface-container-lowest rounded-2xl shadow-sm p-8 border border-outline-variant/10">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="font-headline font-bold text-2xl">Recent searches</h2>
+            <button id="clear-recent" class="text-primary font-semibold text-sm hover:underline">Clear all</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="recent-list"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Map Results (after search) -->
+    <div id="map-results" class="hidden">
+      <div class="max-w-7xl mx-auto px-6 py-6">
+        <!-- Compact search bar -->
+        <div class="flex gap-3 mb-6 items-center">
+          <button id="back-btn" class="text-primary flex items-center gap-1 font-semibold hover:underline shrink-0">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+          <div class="glass-panel flex-1 rounded-full p-1.5 shadow border border-white/20 flex gap-2">
+            <div class="relative flex-1">
+              <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-primary text-lg">location_on</span>
+              <input id="results-input" class="w-full pl-11 pr-3 py-3 bg-transparent border-none focus:ring-0 text-on-surface text-sm" type="text"/>
+            </div>
+            <button id="results-search-btn" class="bg-primary text-white px-5 py-2.5 rounded-full font-headline font-bold text-sm">Search</button>
+          </div>
+          <select id="results-fuel-filter" class="bg-white border border-outline-variant/30 rounded-full px-4 py-3 text-sm font-medium focus:ring-primary shrink-0">
+            <option value="">All Fuels</option>
+            <option value="E10">E10</option>
+            <option value="U91">U91</option>
+            <option value="U95">U95</option>
+            <option value="U98">U98</option>
+            <option value="Diesel">Diesel</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <!-- Map -->
+          <div class="lg:col-span-3">
+            <div id="leaflet-map"></div>
+            <div class="flex gap-4 mt-3 items-center text-xs text-on-surface-variant">
+              Price indicator:
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Cheap</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Average</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Expensive</span>
+            </div>
+          </div>
+          <!-- Station list -->
+          <div class="lg:col-span-2 flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-headline font-bold text-lg" id="results-count">Searching…</h3>
+              <select id="results-sort" class="text-xs bg-surface-container border-none rounded-full px-3 py-1.5 focus:ring-primary">
+                <option value="price">Cheapest first</option>
+                <option value="name">By station</option>
+              </select>
+            </div>
+            <div id="station-list" class="space-y-2 overflow-y-auto flex-1 pr-1" style="max-height:440px"></div>
+            <button id="go-prices-btn" class="mt-4 text-primary font-semibold text-sm hover:underline text-center">View full comparison →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- VIEW: PRICES                           -->
+  <!-- ══════════════════════════════════════ -->
+  <div id="view-prices" class="view hidden">
+    <div class="max-w-7xl mx-auto px-6 py-8">
+      <h1 class="font-headline font-bold text-3xl mb-1">Fuel Price Comparison</h1>
+      <p class="text-on-surface-variant text-sm mb-6" id="prices-updated">Loading QLD fuel prices…</p>
+
+      <!-- Filters card -->
+      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-6 space-y-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Fuel type:</span>
+          <div class="flex flex-wrap gap-2" id="fuel-chips">
+            <button class="fuel-chip chip-active px-4 py-1.5 rounded-full text-sm font-medium transition-colors" data-fuel="all">All</button>
+            <button class="fuel-chip chip-inactive px-4 py-1.5 rounded-full text-sm font-medium transition-colors" data-fuel="E10">E10</button>
+            <button class="fuel-chip chip-inactive px-4 py-1.5 rounded-full text-sm font-medium transition-colors" data-fuel="U91">U91</button>
+            <button class="fuel-chip chip-inactive px-4 py-1.5 rounded-full text-sm font-medium transition-colors" data-fuel="U95">U95</button>
+            <button class="fuel-chip chip-inactive px-4 py-1.5 rounded-full text-sm font-medium transition-colors" data-fuel="U98">U98</button>
+            <button class="fuel-chip chip-inactive px-4 py-1.5 rounded-full text-sm font-medium transition-colors" data-fuel="Diesel">Diesel</button>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant shrink-0">Brand:</span>
+          <div class="flex flex-wrap gap-2" id="vendor-chips">
+            <button class="vendor-chip chip-active px-4 py-1.5 rounded-full text-sm font-medium transition-colors" data-vendor="all">All</button>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-3 items-center">
+          <div class="relative flex-1 min-w-[180px]">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">search</span>
+            <input id="prices-search" type="text" placeholder="Search suburb or station…" class="w-full pl-10 pr-4 py-2.5 bg-surface-container rounded-full border-none focus:ring-primary text-sm"/>
+          </div>
+          <select id="prices-sort" class="bg-surface-container border-none rounded-full px-4 py-2.5 text-sm">
+            <option value="price-asc">Cheapest first</option>
+            <option value="price-desc">Most expensive</option>
+            <option value="brand">By brand</option>
+            <option value="suburb">By suburb</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6" id="price-stats"></div>
+
+      <!-- Table -->
+      <div class="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-surface-container-low">
+                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">#</th>
+                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Station</th>
+                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Brand</th>
+                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Suburb</th>
+                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Fuel</th>
+                <th class="text-right px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Price ¢/L</th>
+              </tr>
+            </thead>
+            <tbody id="prices-body">
+              <tr><td colspan="6" class="text-center py-16 text-on-surface-variant">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="px-5 py-3 bg-surface-container-low text-on-surface-variant text-xs flex justify-between">
+          <span>Showing <b id="prices-showing">0</b> of <b id="prices-total">0</b> records</span>
+          <span id="prices-data-note"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- VIEW: TRENDS                           -->
+  <!-- ══════════════════════════════════════ -->
+  <div id="view-trends" class="view hidden">
+    <div class="max-w-7xl mx-auto px-6 py-8">
+      <h1 class="font-headline font-bold text-3xl mb-1">Fuel Price Trends</h1>
+      <p class="text-on-surface-variant text-sm mb-8">QLD price averages and patterns from the latest data</p>
+
+      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-6">
+        <h2 class="font-headline font-bold text-lg mb-4">Average Price by Fuel Type</h2>
+        <canvas id="chart-avg-fuel" height="80"></canvas>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+          <h2 class="font-headline font-bold text-lg mb-1">Cheapest Brands <span class="font-body font-normal text-sm text-on-surface-variant">(U91 avg)</span></h2>
+          <canvas id="chart-brands" height="220"></canvas>
+        </div>
+        <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+          <h2 class="font-headline font-bold text-lg mb-1">Price Distribution <span class="font-body font-normal text-sm text-on-surface-variant">(U91)</span></h2>
+          <canvas id="chart-dist" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Mobile bottom nav -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/92 backdrop-blur-lg border-t border-outline-variant/20 z-50 rounded-t-3xl">
+  <a class="mobile-tab flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl transition-colors text-primary bg-primary/10" data-tab="map">
+    <span class="material-symbols-outlined text-xl">map</span><span class="text-xs font-semibold">Map</span>
+  </a>
+  <a class="mobile-tab flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl transition-colors text-on-surface-variant" data-tab="prices">
+    <span class="material-symbols-outlined text-xl">local_gas_station</span><span class="text-xs font-semibold">Prices</span>
+  </a>
+  <a class="mobile-tab flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl transition-colors text-on-surface-variant" data-tab="trends">
+    <span class="material-symbols-outlined text-xl">trending_up</span><span class="text-xs font-semibold">Trends</span>
+  </a>
+</nav>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+let allData = [];
+let leafletMap = null;
+let charts = {};
+let selectedFuel = 'all';
+let selectedVendor = 'all';
+let selectedRadius = 10;
+let recentSearches = JSON.parse(localStorage.getItem('fw-recent') || '[]');
+
+const ALLOWED_FUELS = ['E10','U91','U95','U98','Diesel'];
+const FUEL_REMAP = { 'ULP':'U91','PULP':'U95','PDL':'Diesel','DL':'Diesel','E85':null,'LPG':null };
+
+// ── STATUS ─────────────────────────────────────────────────────
+function setStatus(msg) {
+  document.getElementById('data-status').textContent = msg;
+}
+
+// ── DATA LOADING ───────────────────────────────────────────────
+async function loadData() {
+  setStatus('Fetching QLD prices…');
+  try {
+    const pkgRes = await fetch('https://www.data.qld.gov.au/api/3/action/package_show?id=fuel-price-reporting');
+    const pkg = await pkgRes.json();
+    const csvs = pkg.result.resources
+      .filter(r => r.format && r.format.toUpperCase() === 'CSV')
+      .sort((a,b) => new Date(b.created) - new Date(a.created));
+    const latest = csvs[0];
+    setStatus(`Parsing ${latest.name}…`);
+    document.getElementById('prices-updated').textContent = `Source: ${latest.name} — QLD Open Data Portal`;
+    document.getElementById('prices-data-note').textContent = latest.name;
+
+    return await new Promise((resolve, reject) => {
+      Papa.parse(latest.url, {
+        download: true, header: true, skipEmptyLines: true,
+        complete(results) {
+          const data = results.data.map(r => {
+            let ft = (r.FuelType || r.fueltype || '').trim();
+            if (ft in FUEL_REMAP) ft = FUEL_REMAP[ft];
+            if (!ft || !ALLOWED_FUELS.includes(ft)) return null;
+            const price = parseFloat(r.Price || r.price || 0);
+            if (price < 50 || price > 500) return null;
+            return {
+              name: (r.Site || r.site || '').trim(),
+              brand: (r.Brand || r.brand || 'Unknown').trim(),
+              address: (r.Address || r.address || '').trim(),
+              postcode: (r.Postcode || r.postcode || '').trim(),
+              suburb: (r.Suburb || r.suburb || '').trim(),
+              fuelType: ft,
+              price,
+              date: r.TransactionDateutc || r.transactiondateutc || '',
+            };
+          }).filter(Boolean);
+          resolve(data);
+        },
+        error: reject,
+      });
+    });
+  } catch(e) {
+    console.warn('QLD API failed, using demo data', e);
+    return makeDemoData();
+  }
+}
+
+function makeDemoData() {
+  const brands = ['Ampol','BP','Shell','Caltex','7-Eleven','Costco','United','Liberty','Puma','Reddy Express'];
+  const suburbs = ['Narangba','North Lakes','Kallangur','Mango Hill','Petrie','Burpengary','Morayfield','Redcliffe','Strathpine','Bracken Ridge'];
+  const base = { E10:187, U91:192, U95:202, U98:212, Diesel:196 };
+  const data = [];
+  suburbs.forEach((sub,si) => brands.forEach((brand,bi) => ALLOWED_FUELS.forEach(ft => {
+    data.push({ name:`${brand} ${sub}`, brand, address:`${10+bi*3} Main St`, postcode:`450${si}`, suburb:sub, fuelType:ft, price: base[ft] + (Math.random()*22-11), date:new Date().toISOString() });
+  })));
+  return data;
+}
+
+// ── TABS ───────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.classList.add('hidden'); });
+  const v = document.getElementById(`view-${tab}`);
+  v.classList.remove('hidden'); v.classList.add('active');
+
+  document.querySelectorAll('.tab-link').forEach(t => {
+    const on = t.dataset.tab === tab;
+    t.className = `tab-link ${on?'tab-active':'tab-inactive'} font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg ${on?'':'hover:bg-surface-container-low'}`;
+  });
+  document.querySelectorAll('.mobile-tab').forEach(t => {
+    const on = t.dataset.tab === tab;
+    t.className = `mobile-tab flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl transition-colors ${on?'text-primary bg-primary/10':'text-on-surface-variant'}`;
+  });
+
+  if (tab === 'prices' && allData.length) renderPrices();
+  if (tab === 'trends' && allData.length) renderTrends();
+}
+
+// ── SEARCH ─────────────────────────────────────────────────────
+async function doSearch(query) {
+  if (!query.trim()) return;
+  if (!recentSearches.includes(query)) {
+    recentSearches.unshift(query);
+    recentSearches = recentSearches.slice(0,6);
+    localStorage.setItem('fw-recent', JSON.stringify(recentSearches));
+    renderRecent();
+  }
+  document.getElementById('search-hero').classList.add('hidden');
+  document.getElementById('map-results').classList.remove('hidden');
+  document.getElementById('results-input').value = query;
+  setStatus('Locating…');
+
+  const loc = await geocode(query);
+  const fuelFilter = document.getElementById('results-fuel-filter').value;
+  const q = query.split(',')[0].trim().toLowerCase();
+
+  let results = allData.filter(d =>
+    d.suburb.toLowerCase().includes(q) ||
+    d.name.toLowerCase().includes(q) ||
+    d.postcode === q
+  );
+  if (results.length < 10) results = allData.slice(0, 300); // fallback
+  if (fuelFilter) results = results.filter(d => d.fuelType === fuelFilter);
+
+  // Deduplicate: keep cheapest per station+fueltype
+  const seen = new Map();
+  results.forEach(d => {
+    const k = `${d.name}|${d.fuelType}`;
+    if (!seen.has(k) || d.price < seen.get(k).price) seen.set(k, d);
+  });
+  const deduped = [...seen.values()].sort((a,b) => a.price - b.price);
+
+  document.getElementById('results-count').textContent = `${deduped.length} stations found`;
+  renderStationList(deduped.slice(0,60));
+  initMap(loc.lat, loc.lng, deduped.slice(0,120));
+  setStatus(`✓ ${deduped.length} stations`);
+}
+
+async function geocode(query) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+' QLD Australia')}&format=json&limit=1`, { headers:{'Accept-Language':'en'} });
+    const d = await r.json();
+    if (d[0]) return { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) };
+  } catch(e) {}
+  return { lat:-27.47, lng:153.02 }; // Brisbane
+}
+
+// ── MAP ────────────────────────────────────────────────────────
+function initMap(lat, lng, stations) {
+  if (leafletMap) { leafletMap.remove(); leafletMap = null; }
+  leafletMap = L.map('leaflet-map').setView([lat,lng],12);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
+    subdomains:'abcd', maxZoom:19
+  }).addTo(leafletMap);
+
+  // Search location marker
+  L.circleMarker([lat,lng], { radius:9, fillColor:'#005f9d', color:'white', weight:2, fillOpacity:0.95 })
+    .addTo(leafletMap).bindPopup('<b>Your location</b>');
+
+  // Radius circle
+  L.circle([lat,lng], { radius: selectedRadius*1000, fillColor:'#005f9d', fillOpacity:0.04, color:'#005f9d', weight:1 })
+    .addTo(leafletMap);
+
+  // Group by suburb → show cheapest price pin per suburb
+  const bySuburb = {};
+  stations.forEach(s => { if (!bySuburb[s.suburb]) bySuburb[s.suburb] = []; bySuburb[s.suburb].push(s); });
+  const subList = Object.entries(bySuburb);
+  const prices = stations.map(s=>s.price);
+  const pMin = Math.min(...prices), pMax = Math.max(...prices);
+
+  subList.forEach(([suburb, subs], i) => {
+    const angle = (2 * Math.PI * i) / subList.length;
+    const r = 0.045 + (i % 3) * 0.02;
+    const sLat = lat + r * Math.cos(angle);
+    const sLng = lng + r * Math.sin(angle) * 1.3;
+    const cheapest = subs.reduce((m,s) => s.price < m.price ? s : m);
+    const pct = (cheapest.price - pMin) / (pMax - pMin + 0.001);
+    const color = pct < 0.33 ? '#22c55e' : pct < 0.66 ? '#f59e0b' : '#ef4444';
+    const icon = L.divIcon({
+      className:'', iconAnchor:[28,14],
+      html:`<div class="price-pin" style="background:${color}">${cheapest.price.toFixed(1)}</div>`
+    });
+    L.marker([sLat,sLng],{icon}).addTo(leafletMap)
+      .bindPopup(`<b>${suburb}</b><br>${cheapest.brand}<br>${cheapest.fuelType}: <b>${cheapest.price.toFixed(1)}¢/L</b>`);
+  });
+}
+
+// ── STATION LIST ───────────────────────────────────────────────
+function renderStationList(stations) {
+  const el = document.getElementById('station-list');
+  if (!stations.length) { el.innerHTML = '<p class="text-center text-on-surface-variant py-10 text-sm">No stations found.</p>'; return; }
+  const pMin = Math.min(...stations.map(s=>s.price));
+  const pMax = Math.max(...stations.map(s=>s.price));
+  el.innerHTML = stations.map(s => {
+    const pct = (s.price - pMin) / (pMax - pMin + 0.001);
+    const cls = pct < 0.33 ? 'text-green-600' : pct < 0.66 ? 'text-amber-600' : 'text-red-600';
+    return `<div class="station-card bg-white rounded-xl p-4 cursor-pointer shadow-sm transition-colors">
+      <div class="flex justify-between items-start gap-3">
+        <div class="min-w-0">
+          <p class="font-headline font-bold text-on-surface truncate">${s.brand}</p>
+          <p class="text-on-surface-variant text-xs truncate">${s.suburb} · ${s.name}</p>
+        </div>
+        <div class="flex flex-col items-end shrink-0">
+          <span class="font-headline font-black text-xl ${cls}">${s.price.toFixed(1)}¢</span>
+          <span class="text-xs bg-surface-container px-2 py-0.5 rounded-full mt-1">${s.fuelType}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── PRICES TAB ─────────────────────────────────────────────────
+function renderPrices() {
+  let data = [...allData];
+  if (selectedFuel !== 'all') data = data.filter(d => d.fuelType === selectedFuel);
+  if (selectedVendor !== 'all') data = data.filter(d => d.brand === selectedVendor);
+
+  const q = document.getElementById('prices-search').value.toLowerCase();
+  if (q) data = data.filter(d => d.suburb.toLowerCase().includes(q) || d.name.toLowerCase().includes(q) || d.brand.toLowerCase().includes(q));
+
+  const sort = document.getElementById('prices-sort').value;
+  if (sort==='price-asc') data.sort((a,b)=>a.price-b.price);
+  else if (sort==='price-desc') data.sort((a,b)=>b.price-a.price);
+  else if (sort==='brand') data.sort((a,b)=>a.brand.localeCompare(b.brand));
+  else data.sort((a,b)=>a.suburb.localeCompare(b.suburb));
+
+  // Stats
+  const fuelsToShow = selectedFuel === 'all' ? ALLOWED_FUELS : [selectedFuel];
+  document.getElementById('price-stats').innerHTML = fuelsToShow.map(ft => {
+    const fd = allData.filter(d=>d.fuelType===ft);
+    if (!fd.length) return '';
+    const avg = fd.reduce((s,d)=>s+d.price,0)/fd.length;
+    const min = Math.min(...fd.map(d=>d.price));
+    return `<div class="bg-white rounded-xl p-4 shadow-sm border border-outline-variant/10">
+      <p class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">${ft}</p>
+      <p class="font-headline font-black text-2xl mt-1">${avg.toFixed(1)}¢</p>
+      <p class="text-xs text-green-600 font-medium">Best: ${min.toFixed(1)}¢</p>
+    </div>`;
+  }).join('');
+
+  // Vendor chips
+  const brands = [...new Set(allData.map(d=>d.brand))].sort();
+  const vc = document.getElementById('vendor-chips');
+  vc.querySelectorAll('[data-vendor]:not([data-vendor="all"])').forEach(c=>c.remove());
+  brands.forEach(brand => {
+    const btn = document.createElement('button');
+    btn.className = `vendor-chip ${selectedVendor===brand?'chip-active':'chip-inactive'} px-4 py-1.5 rounded-full text-sm font-medium transition-colors`;
+    btn.dataset.vendor = brand; btn.textContent = brand;
+    btn.addEventListener('click', () => { selectedVendor = brand; refreshVendorChips(); renderPrices(); });
+    vc.appendChild(btn);
+  });
+
+  const shown = data.slice(0,300);
+  document.getElementById('prices-showing').textContent = shown.length;
+  document.getElementById('prices-total').textContent = data.length;
+  document.getElementById('prices-body').innerHTML = shown.map((r,i) => {
+    const pct = r.price < 185 ? 'text-green-600' : r.price < 200 ? 'text-amber-600' : 'text-red-600';
+    return `<tr class="border-t border-surface-container-high cursor-pointer">
+      <td class="px-5 py-3.5 text-on-surface-variant text-xs">${i+1}</td>
+      <td class="px-5 py-3.5"><p class="font-semibold">${r.name||r.brand}</p><p class="text-on-surface-variant text-xs">${r.address}</p></td>
+      <td class="px-5 py-3.5"><span class="bg-surface-container px-2 py-0.5 rounded-full text-xs">${r.brand}</span></td>
+      <td class="px-5 py-3.5 text-on-surface-variant text-sm">${r.suburb}</td>
+      <td class="px-5 py-3.5"><span class="bg-surface-container px-2 py-0.5 rounded-full text-xs">${r.fuelType}</span></td>
+      <td class="px-5 py-3.5 text-right font-headline font-black text-lg ${pct}">${r.price.toFixed(1)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function refreshVendorChips() {
+  document.querySelectorAll('.vendor-chip').forEach(c => {
+    c.className = `vendor-chip ${c.dataset.vendor===selectedVendor?'chip-active':'chip-inactive'} px-4 py-1.5 rounded-full text-sm font-medium transition-colors`;
+  });
+}
+
+// ── TRENDS TAB ─────────────────────────────────────────────────
+function renderTrends() {
+  Object.values(charts).forEach(c=>c.destroy()); charts = {};
+
+  // 1. Avg by fuel type
+  const avgByFuel = {};
+  ALLOWED_FUELS.forEach(ft => {
+    const fd = allData.filter(d=>d.fuelType===ft);
+    if (fd.length) avgByFuel[ft] = fd.reduce((s,d)=>s+d.price,0)/fd.length;
+  });
+  charts.fuel = new Chart(document.getElementById('chart-avg-fuel'), {
+    type:'bar',
+    data:{ labels:Object.keys(avgByFuel), datasets:[{ label:'Avg ¢/L', data:Object.values(avgByFuel), backgroundColor:['#005f9d','#0079c5','#3b82f6','#60a5fa','#6b7280'], borderRadius:8 }] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:false, min:Math.min(...Object.values(avgByFuel))-10, grid:{color:'#edeeee'} }, x:{grid:{display:false}} } }
+  });
+
+  // 2. Brands (U91 avg, sorted cheapest)
+  const u91 = allData.filter(d=>d.fuelType==='U91');
+  const byBrand = {};
+  u91.forEach(d=>{ if(!byBrand[d.brand]) byBrand[d.brand]=[]; byBrand[d.brand].push(d.price); });
+  const brandData = Object.entries(byBrand)
+    .filter(([,p])=>p.length>=3)
+    .map(([brand,prices])=>({ brand, avg: prices.reduce((s,p)=>s+p,0)/prices.length }))
+    .sort((a,b)=>a.avg-b.avg).slice(0,10);
+  charts.brands = new Chart(document.getElementById('chart-brands'), {
+    type:'bar', indexAxis:'y',
+    data:{ labels:brandData.map(b=>b.brand), datasets:[{ data:brandData.map(b=>b.avg), backgroundColor:brandData.map((_,i)=>i===0?'#22c55e':i<3?'#3b82f6':'#9ca3af'), borderRadius:6 }] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{ beginAtZero:false, min:brandData.length?brandData[0].avg-5:180, grid:{color:'#edeeee'} }, y:{grid:{display:false}} } }
+  });
+
+  // 3. Price distribution histogram (U91)
+  const u91prices = u91.map(d=>d.price);
+  const buckets = {}; const bSize = 2;
+  u91prices.forEach(p=>{ const b = Math.floor(p/bSize)*bSize; buckets[b]=(buckets[b]||0)+1; });
+  const bucketKeys = Object.keys(buckets).sort((a,b)=>a-b);
+  charts.dist = new Chart(document.getElementById('chart-dist'), {
+    type:'bar',
+    data:{ labels:bucketKeys.map(k=>`${k}¢`), datasets:[{ data:bucketKeys.map(k=>buckets[k]), backgroundColor:'#005f9d99', borderRadius:4 }] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'#edeeee'}}, x:{grid:{display:false}, ticks:{maxTicksLimit:12}} } }
+  });
+}
+
+// ── RECENT SEARCHES ────────────────────────────────────────────
+function renderRecent() {
+  const el = document.getElementById('recent-list');
+  if (!recentSearches.length) { el.innerHTML = '<p class="col-span-3 text-on-surface-variant text-sm">No recent searches yet.</p>'; return; }
+  el.innerHTML = recentSearches.map(s => `
+    <div class="group p-5 rounded-xl bg-surface-container-low hover:bg-surface-container-high transition-colors cursor-pointer flex items-center justify-between" onclick="doSearch('${s.replace(/'/g,"\\'")}')">
+      <div class="flex items-center gap-4">
+        <div class="bg-surface-container-highest p-2.5 rounded-full text-secondary"><span class="material-symbols-outlined text-xl">history</span></div>
+        <div>
+          <p class="font-headline font-bold text-on-surface">${s}</p>
+          <p class="text-on-surface-variant text-xs">Queensland, Australia</p>
+        </div>
+      </div>
+      <span class="material-symbols-outlined text-outline opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+    </div>`).join('');
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // Tabs
+  document.querySelectorAll('.tab-link, .mobile-tab').forEach(t => {
+    t.addEventListener('click', e => { e.preventDefault(); switchTab(t.dataset.tab); });
+  });
+
+  // Search
+  document.getElementById('search-btn').addEventListener('click', () => doSearch(document.getElementById('search-input').value));
+  document.getElementById('search-input').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(e.target.value); });
+  document.getElementById('results-search-btn').addEventListener('click', () => doSearch(document.getElementById('results-input').value));
+  document.getElementById('results-input').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(e.target.value); });
+
+  // Back
+  document.getElementById('back-btn').addEventListener('click', () => {
+    document.getElementById('search-hero').classList.remove('hidden');
+    document.getElementById('map-results').classList.add('hidden');
+  });
+
+  // Radius
+  document.querySelectorAll('.radius-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      selectedRadius = parseInt(chip.dataset.km);
+      document.querySelectorAll('.radius-chip').forEach(c => {
+        c.className = `radius-chip ${c===chip?'chip-active':'chip-inactive hover:bg-surface-container-high'} px-5 py-2 rounded-full text-sm font-medium transition-colors`;
+      });
+    });
+  });
+
+  // Results fuel filter
+  document.getElementById('results-fuel-filter').addEventListener('change', () => {
+    if (document.getElementById('results-input').value) doSearch(document.getElementById('results-input').value);
+  });
+
+  // Results sort
+  document.getElementById('results-sort').addEventListener('change', () => {
+    const list = [...document.getElementById('station-list').children];
+    // re-render from allData based on current query
+  });
+
+  // Prices filters
+  document.querySelectorAll('.fuel-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      selectedFuel = chip.dataset.fuel;
+      document.querySelectorAll('.fuel-chip').forEach(c => {
+        c.className = `fuel-chip ${c.dataset.fuel===selectedFuel?'chip-active':'chip-inactive'} px-4 py-1.5 rounded-full text-sm font-medium transition-colors`;
+      });
+      renderPrices();
+    });
+  });
+  document.querySelector('[data-vendor="all"]').addEventListener('click', () => {
+    selectedVendor = 'all'; refreshVendorChips(); renderPrices();
+  });
+  document.getElementById('prices-search').addEventListener('input', () => renderPrices());
+  document.getElementById('prices-sort').addEventListener('change', () => renderPrices());
+
+  // Go to prices
+  document.getElementById('go-prices-btn').addEventListener('click', () => switchTab('prices'));
+
+  // Clear recent
+  document.getElementById('clear-recent').addEventListener('click', () => {
+    recentSearches = []; localStorage.removeItem('fw-recent'); renderRecent();
+  });
+
+  // Use current location
+  document.getElementById('use-location-btn').addEventListener('click', () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+      const d = await r.json();
+      const suburb = d.address?.suburb || d.address?.town || d.address?.city || 'Current Location';
+      document.getElementById('search-input').value = suburb;
+      doSearch(suburb);
+    });
+  });
+
+  // Render recent
+  renderRecent();
+
+  // Load data
+  allData = await loadData();
+  setStatus(`✓ ${allData.length.toLocaleString()} prices loaded`);
+});
+</script>
+</body>
+</html>
