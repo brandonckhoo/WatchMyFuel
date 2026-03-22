@@ -144,14 +144,14 @@
             </div>
             <button id="results-search-btn" class="bg-primary text-white px-5 py-2.5 rounded-full font-headline font-bold text-sm">Search</button>
           </div>
-          <select id="results-fuel-filter" class="bg-white border border-outline-variant/30 rounded-full px-4 py-3 text-sm font-medium focus:ring-primary shrink-0">
-            <option value="">All Fuels</option>
-            <option value="E10">E10</option>
-            <option value="U91">U91</option>
-            <option value="U95">U95</option>
-            <option value="U98">U98</option>
-            <option value="Diesel">Diesel</option>
-          </select>
+          <div class="flex bg-surface-container-low p-1 rounded-full gap-1 shrink-0" id="map-fuel-chips">
+            <button class="map-fuel-chip chip-active px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="">All</button>
+            <button class="map-fuel-chip chip-inactive px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="E10">E10</button>
+            <button class="map-fuel-chip chip-inactive px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="U91">U91</button>
+            <button class="map-fuel-chip chip-inactive px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="U95">U95</button>
+            <button class="map-fuel-chip chip-inactive px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="U98">U98</button>
+            <button class="map-fuel-chip chip-inactive px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="Diesel">Diesel</button>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -403,7 +403,7 @@ async function doSearch(query) {
   setStatus('Locating…');
 
   const loc = await geocode(query);
-  const fuelFilter = document.getElementById('results-fuel-filter').value;
+  const fuelFilter = document.querySelector('.map-fuel-chip.chip-active')?.dataset.fuel || '';
   const q = query.split(',')[0].trim().toLowerCase();
 
   let results = allData.filter(d =>
@@ -532,7 +532,8 @@ function renderPrices() {
   }).join('');
 
   // Vendor chips
-  const brands = [...new Set(allData.map(d=>d.brand))].sort();
+  const allBrands = [...new Set(allData.map(d=>d.brand))].sort();
+  const brands = ['Costco', ...allBrands.filter(b => b !== 'Costco')];
   const vc = document.getElementById('vendor-chips');
   vc.querySelectorAll('[data-vendor]:not([data-vendor="all"])').forEach(c=>c.remove());
   brands.forEach(brand => {
@@ -653,9 +654,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Results fuel filter
-  document.getElementById('results-fuel-filter').addEventListener('change', () => {
-    if (document.getElementById('results-input').value) doSearch(document.getElementById('results-input').value);
+  // Map fuel chips
+  document.querySelectorAll('.map-fuel-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.map-fuel-chip').forEach(c => {
+        c.className = `map-fuel-chip ${c === chip ? 'chip-active' : 'chip-inactive'} px-4 py-2 rounded-full text-sm font-medium transition-colors`;
+      });
+      if (document.getElementById('results-input').value) doSearch(document.getElementById('results-input').value);
+    });
   });
 
   // Results sort
