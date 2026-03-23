@@ -310,9 +310,7 @@ let recentSearches = JSON.parse(sessionStorage.getItem('fw-recent') || '[]');
 const ALLOWED_FUELS = ['E10','U91','U95','U98','Diesel'];
 // FuelPricesQLD API fuel ID → internal fuel type name
 const FUEL_ID_MAP = { 2:'U91', 3:'U95', 4:'U98', 5:'E10', 6:'Diesel' };
-const FPP_API = 'https://fppdirectapi-prod.fuelpricesqld.com.au';
-const FPP_TOKEN = '07e05b7e-684d-4b40-a334-e99a6b618b1e';
-const FPP_HEADERS = { 'Authorization': `FPDAPI SubscriberToken=${FPP_TOKEN}` };
+const FPP_PROXY = '/api/fuel';
 
 // ── STATUS ─────────────────────────────────────────────────────
 function setStatus(msg) {
@@ -324,7 +322,7 @@ async function loadData() {
   setStatus('Fetching live QLD prices…');
   try {
     // Full download: sites + prices in one call
-    const res = await fetch(`${FPP_API}/Price/GetFullDownload?countryId=21`, { headers: FPP_HEADERS });
+    const res = await fetch(FPP_PROXY);
     if (!res.ok) throw new Error(`API ${res.status}`);
     const json = await res.json();
 
