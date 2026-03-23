@@ -308,7 +308,11 @@ let selectedRadius = 10;
 let recentSearches = JSON.parse(sessionStorage.getItem('fw-recent') || '[]');
 
 const ALLOWED_FUELS = ['E10','U91','U95','U98','Diesel'];
-const FUEL_REMAP = { 'ULP':'U91','PULP':'U95','PDL':'Diesel','DL':'Diesel','E85':null,'LPG':null };
+// FuelPricesQLD API fuel ID → internal fuel type name
+const FUEL_ID_MAP = { 2:'U91', 3:'U95', 4:'U98', 5:'E10', 6:'Diesel' };
+const FPP_API = 'https://fppdirectapi-prod.fuelpricesqld.com.au';
+const FPP_TOKEN = '07e05b7e-684d-4b40-a334-e99a6b618b1e';
+const FPP_HEADERS = { 'Authorization': `FPDAPI SubscriberToken=${FPP_TOKEN}` };
 
 // ── STATUS ─────────────────────────────────────────────────────
 function setStatus(msg) {
@@ -317,46 +321,52 @@ function setStatus(msg) {
 
 // ── DATA LOADING ───────────────────────────────────────────────
 async function loadData() {
-  setStatus('Fetching QLD prices…');
+  setStatus('Fetching live QLD prices…');
   try {
-    const pkgRes = await fetch('https://www.data.qld.gov.au/api/3/action/package_show?id=fuel-price-reporting');
-    const pkg = await pkgRes.json();
-    const csvs = pkg.result.resources
-      .filter(r => r.format && r.format.toUpperCase() === 'CSV')
-      .sort((a,b) => new Date(b.created) - new Date(a.created));
-    const latest = csvs[0];
-    setStatus(`Parsing ${latest.name}…`);
-    document.getElementById('prices-updated').textContent = `Source: ${latest.name} — QLD Open Data Portal`;
-    document.getElementById('prices-data-note').textContent = latest.name;
+    // Full download: sites + prices in one call
+    const res = await fetch(`${FPP_API}/Price/GetFullDownload?countryId=21`, { headers: FPP_HEADERS });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const json = await res.json();
 
-    return await new Promise((resolve, reject) => {
-      Papa.parse(latest.url, {
-        download: true, header: true, skipEmptyLines: true,
-        complete(results) {
-          const data = results.data.map(r => {
-            let ft = (r.FuelType || r.fueltype || '').trim();
-            if (ft in FUEL_REMAP) ft = FUEL_REMAP[ft];
-            if (!ft || !ALLOWED_FUELS.includes(ft)) return null;
-            const price = parseFloat(r.Price || r.price || 0);
-            if (price < 50 || price > 500) return null;
-            return {
-              name: (r.Site || r.site || '').trim(),
-              brand: (r.Brand || r.brand || 'Unknown').trim(),
-              address: (r.Address || r.address || '').trim(),
-              postcode: (r.Postcode || r.postcode || '').trim(),
-              suburb: (r.Suburb || r.suburb || '').trim(),
-              fuelType: ft,
-              price,
-              date: r.TransactionDateutc || r.transactiondateutc || '',
-            };
-          }).filter(Boolean);
-          resolve(data);
-        },
-        error: reject,
-      });
+    // Build site lookup: siteId → site details
+    const siteMap = {};
+    (json.S || []).forEach(s => {
+      siteMap[s.S] = {
+        name: (s.N || '').trim(),
+        brand: (s.B || 'Unknown').trim(),
+        address: (s.A || '').trim(),
+        suburb: (s.Suburb || s.suburb || '').trim(),
+        postcode: (String(s.P || '')).trim(),
+        lat: s.Lat || null,
+        lng: s.Lng || null,
+      };
     });
+
+    const now = new Date().toISOString();
+    const data = (json.SitePrices || []).map(sp => {
+      const ft = FUEL_ID_MAP[sp.FuelId];
+      if (!ft) return null;
+      const site = siteMap[sp.SiteId];
+      if (!site) return null;
+      // Prices are in tenths of a cent → divide by 10 to get c/L
+      const price = sp.Price / 10;
+      if (price < 50 || price > 500) return null;
+      return {
+        ...site,
+        fuelType: ft,
+        price,
+        date: sp.TransactionDateutc || now,
+      };
+    }).filter(Boolean);
+
+    const ts = new Date().toLocaleString('en-AU', { timeZone:'Australia/Brisbane' });
+    document.getElementById('prices-updated').textContent = `Live data — FuelPricesQLD API — ${ts} AEST`;
+    document.getElementById('prices-data-note').textContent = `Live — updated ${ts}`;
+    setStatus(`✓ Live data loaded`);
+    return data;
   } catch(e) {
-    console.warn('QLD API failed, using demo data', e);
+    console.warn('FuelPricesQLD API failed:', e);
+    setStatus('Live API unavailable — using demo data');
     return makeDemoData();
   }
 }
