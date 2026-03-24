@@ -424,7 +424,7 @@ async function geocode(query) {
   return { lat:-27.47, lng:153.02 }; // Brisbane
 }
 
-// ── BRAND COLOURS ──────────────────────────────────────────────
+// ── BRAND COLOURS & LOGOS ──────────────────────────────────────
 const BRAND_COLORS = {
   'Ampol':        '#E31A22', 'Caltex':        '#E31A22',
   'BP':           '#00A650', 'Shell':          '#FBCE07',
@@ -435,6 +435,24 @@ const BRAND_COLORS = {
   'Metro Fuel':   '#1B5E9B', 'Independent':    '#6B7280',
   'U-Go':         '#7C3AED', 'EG Ampol':       '#E31A22',
   'On the Run':   '#F59E0B', 'Freedom Fuels':  '#059669',
+};
+const BRAND_DOMAINS = {
+  'Ampol':        'ampol.com.au',
+  'EG Ampol':     'ampol.com.au',
+  'Caltex':       'caltex.com.au',
+  'BP':           'bp.com',
+  '7-Eleven':     '7eleven.com.au',
+  'Shell':        'shell.com.au',
+  'Coles Express':'colesexpress.com.au',
+  'Liberty':      'libertypetroleum.com.au',
+  'Puma':         'pumaenergy.com.au',
+  'Puma Energy':  'pumaenergy.com.au',
+  'United':       'unitedpetroleum.com.au',
+  'Costco':       'costco.com.au',
+  'Reddy Express':'reddyexpress.com.au',
+  'Metro Fuel':   'metrofuel.com.au',
+  'On the Run':   'ontherun.com.au',
+  'Freedom Fuels':'freedomfuels.com.au',
 };
 function brandColor(brand) { return BRAND_COLORS[brand] || '#374151'; }
 function brandInitials(brand) {
@@ -447,6 +465,20 @@ function brandInitials(brand) {
   if (brand === 'Reddy Express') return 'RE';
   const words = brand.split(' ');
   return words.length === 1 ? brand.slice(0,2).toUpperCase() : words.map(w=>w[0]).join('').slice(0,3).toUpperCase();
+}
+function brandLogoHtml(brand, size=32) {
+  const bc = brandColor(brand);
+  const init = brandInitials(brand);
+  const textColor = brand === 'Shell' ? '#374151' : 'white';
+  const base = `background:${bc};color:${textColor};width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.28)}px;font-weight:800;font-family:'Space Grotesk',sans-serif;flex-shrink:0;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.2)`;
+  const domain = BRAND_DOMAINS[brand];
+  if (!domain) return `<div style="${base}">${init}</div>`;
+  const s = size - 8;
+  return `<div style="${base};background:white;border-color:${bc}">
+    <img src="https://logo.clearbit.com/${domain}" width="${s}" height="${s}" style="object-fit:contain;border-radius:50%"
+      onerror="this.parentNode.style.background='${bc}';this.parentNode.style.borderColor='white';this.outerHTML='<span style=\\'color:${textColor};font-size:${Math.round(size*0.28)}px;font-weight:800;font-family:Space Grotesk,sans-serif\\'>${init}</span>'"
+    />
+  </div>`;
 }
 
 // ── MAP ────────────────────────────────────────────────────────
@@ -481,13 +513,10 @@ function initMap(lat, lng, stations) {
   stList.forEach(s => {
     const pct = (s.price - pMin) / (pMax - pMin + 0.001);
     const priceColor = pct < 0.33 ? '#22c55e' : pct < 0.66 ? '#f59e0b' : '#ef4444';
-    const bc = brandColor(s.brand);
-    const initials = brandInitials(s.brand);
-    const shellText = s.brand === 'Shell' ? '#374151' : 'white';
     const icon = L.divIcon({
       className:'', iconAnchor:[20,42],
       html:`<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-        <div style="background:${bc};color:${shellText};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;font-family:'Space Grotesk',sans-serif;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25)">${initials}</div>
+        ${brandLogoHtml(s.brand, 32)}
         <div class="price-pin" style="background:${priceColor}">${s.price.toFixed(1)}</div>
       </div>`
     });
@@ -510,7 +539,7 @@ function renderStationList(stations) {
     return `<div class="station-card bg-white rounded-xl p-4 shadow-sm transition-colors">
       <div class="flex justify-between items-start gap-3">
         <div class="min-w-0 flex-1 flex items-start gap-3">
-          <div style="background:${brandColor(s.brand)};color:${s.brand==='Shell'?'#374151':'white'};width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;font-family:'Space Grotesk',sans-serif;flex-shrink:0">${brandInitials(s.brand)}</div>
+          ${brandLogoHtml(s.brand, 36)}
           <div class="min-w-0 flex-1">
           <p class="font-headline font-bold text-on-surface truncate">${s.brand}</p>
           <p class="text-on-surface-variant text-xs truncate mb-1">${s.name}</p>
