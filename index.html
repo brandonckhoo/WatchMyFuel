@@ -73,7 +73,6 @@
     <nav class="hidden md:flex items-center gap-1">
       <a class="tab-link tab-active font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg" data-tab="map">Map</a>
       <a class="tab-link tab-inactive font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg hover:bg-surface-container-low" data-tab="prices">Prices</a>
-      <a class="tab-link tab-inactive font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg hover:bg-surface-container-low" data-tab="trends">Trends</a>
     </nav>
     <span id="data-status" class="hidden md:inline text-xs bg-surface-container px-3 py-1.5 rounded-full text-on-surface-variant">Loading data…</span>
   </div>
@@ -271,31 +270,6 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════ -->
-  <!-- VIEW: TRENDS                           -->
-  <!-- ══════════════════════════════════════ -->
-  <div id="view-trends" class="view hidden">
-    <div class="max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-8 pb-24 md:pb-8">
-      <h1 class="font-headline font-bold text-2xl md:text-3xl mb-1">Fuel Price Trends</h1>
-      <p class="text-on-surface-variant text-xs md:text-sm mb-5 md:mb-8">QLD price averages and patterns from the latest data</p>
-
-      <div class="bg-surface-container-lowest rounded-2xl p-4 md:p-6 shadow-sm mb-4 md:mb-6">
-        <h2 class="font-headline font-bold text-lg mb-4">Average Price by Fuel Type</h2>
-        <canvas id="chart-avg-fuel" height="80"></canvas>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
-          <h2 class="font-headline font-bold text-lg mb-1">Cheapest Brands <span class="font-body font-normal text-sm text-on-surface-variant">(U91 avg)</span></h2>
-          <canvas id="chart-brands" height="220"></canvas>
-        </div>
-        <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
-          <h2 class="font-headline font-bold text-lg mb-1">Price Distribution <span class="font-body font-normal text-sm text-on-surface-variant">(U91)</span></h2>
-          <canvas id="chart-dist" height="220"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
 
 </main>
 
@@ -306,9 +280,6 @@
   </a>
   <a class="mobile-tab flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl transition-colors text-on-surface-variant" data-tab="prices">
     <span class="material-symbols-outlined text-xl">local_gas_station</span><span class="text-xs font-semibold">Prices</span>
-  </a>
-  <a class="mobile-tab flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl transition-colors text-on-surface-variant" data-tab="trends">
-    <span class="material-symbols-outlined text-xl">trending_up</span><span class="text-xs font-semibold">Trends</span>
   </a>
 </nav>
 
@@ -398,7 +369,6 @@ function switchTab(tab) {
   });
 
   if (tab === 'prices' && allData.length) renderPrices();
-  if (tab === 'trends' && allData.length) renderTrends();
 }
 
 // ── SEARCH ─────────────────────────────────────────────────────
@@ -665,47 +635,6 @@ function refreshVendorChips() {
 }
 
 // ── TRENDS TAB ─────────────────────────────────────────────────
-function renderTrends() {
-  Object.values(charts).forEach(c=>c.destroy()); charts = {};
-
-  // 1. Avg by fuel type
-  const avgByFuel = {};
-  ALLOWED_FUELS.forEach(ft => {
-    const fd = allData.filter(d=>d.fuelType===ft);
-    if (fd.length) avgByFuel[ft] = fd.reduce((s,d)=>s+d.price,0)/fd.length;
-  });
-  charts.fuel = new Chart(document.getElementById('chart-avg-fuel'), {
-    type:'bar',
-    data:{ labels:Object.keys(avgByFuel), datasets:[{ label:'Avg ¢/L', data:Object.values(avgByFuel), backgroundColor:['#005f9d','#0079c5','#3b82f6','#60a5fa','#6b7280'], borderRadius:8 }] },
-    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:false, min:Math.min(...Object.values(avgByFuel))-10, grid:{color:'#edeeee'} }, x:{grid:{display:false}} } }
-  });
-
-  // 2. Brands (U91 avg, sorted cheapest)
-  const u91 = allData.filter(d=>d.fuelType==='U91');
-  const byBrand = {};
-  u91.forEach(d=>{ if(!byBrand[d.brand]) byBrand[d.brand]=[]; byBrand[d.brand].push(d.price); });
-  const brandData = Object.entries(byBrand)
-    .filter(([,p])=>p.length>=3)
-    .map(([brand,prices])=>({ brand, avg: prices.reduce((s,p)=>s+p,0)/prices.length }))
-    .sort((a,b)=>a.avg-b.avg).slice(0,10);
-  charts.brands = new Chart(document.getElementById('chart-brands'), {
-    type:'bar', indexAxis:'y',
-    data:{ labels:brandData.map(b=>b.brand), datasets:[{ data:brandData.map(b=>b.avg), backgroundColor:brandData.map((_,i)=>i===0?'#22c55e':i<3?'#3b82f6':'#9ca3af'), borderRadius:6 }] },
-    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{ beginAtZero:false, min:brandData.length?brandData[0].avg-5:180, grid:{color:'#edeeee'} }, y:{grid:{display:false}} } }
-  });
-
-  // 3. Price distribution histogram (U91)
-  const u91prices = u91.map(d=>d.price);
-  const buckets = {}; const bSize = 2;
-  u91prices.forEach(p=>{ const b = Math.floor(p/bSize)*bSize; buckets[b]=(buckets[b]||0)+1; });
-  const bucketKeys = Object.keys(buckets).sort((a,b)=>a-b);
-  charts.dist = new Chart(document.getElementById('chart-dist'), {
-    type:'bar',
-    data:{ labels:bucketKeys.map(k=>`${k}¢`), datasets:[{ data:bucketKeys.map(k=>buckets[k]), backgroundColor:'#005f9d99', borderRadius:4 }] },
-    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'#edeeee'}}, x:{grid:{display:false}, ticks:{maxTicksLimit:12}} } }
-  });
-}
-
 // ── RECENT SEARCHES ────────────────────────────────────────────
 function renderRecent() {
   const el = document.getElementById('recent-list');
