@@ -63,7 +63,7 @@
 <!-- ── HEADER ── -->
 <header class="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-outline-variant/20 shadow-sm" style="height:64px">
   <div class="flex justify-between items-center px-6 max-w-7xl mx-auto h-full">
-    <div class="text-xl font-black text-primary font-headline tracking-tight">Watch My Fuel</div>
+    <button onclick="goHome()" class="text-xl font-black text-primary font-headline tracking-tight hover:opacity-75 transition-opacity cursor-pointer bg-transparent border-none p-0">Watch My Fuel</button>
     <nav class="hidden md:flex items-center gap-1">
       <a class="tab-link tab-active font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg" data-tab="map">Map</a>
       <a class="tab-link tab-inactive font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg hover:bg-surface-container-low" data-tab="prices">Prices</a>
@@ -344,6 +344,13 @@ function makeDemoData() {
     data.push({ name:`${brand} ${sub}`, brand, address:`${10+bi*3} Main St`, postcode:`450${si}`, suburb:sub, fuelType:ft, price: base[ft] + (Math.random()*22-11), date:new Date().toISOString() });
   })));
   return data;
+}
+
+// ── HOME ───────────────────────────────────────────────────────
+function goHome() {
+  switchTab('map');
+  document.getElementById('search-hero').classList.remove('hidden');
+  document.getElementById('map-results').classList.add('hidden');
 }
 
 // ── TABS ───────────────────────────────────────────────────────
