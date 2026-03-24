@@ -46,6 +46,12 @@
   .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; display:inline-block; line-height:1; overflow:hidden; max-width:1.5em; }
   .glass-panel { background:rgba(255,255,255,0.88); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
   #leaflet-map { height:480px; border-radius:16px; z-index:1; }
+  @media(max-width:768px) {
+    #leaflet-map { height:45vw; min-height:240px; max-height:320px; border-radius:12px; }
+    .mobile-hide { display:none !important; }
+    .mobile-only { display:block !important; }
+  }
+  @media(min-width:769px) { .mobile-only { display:none !important; } }
   .price-pin { padding:3px 9px; border-radius:999px; font-weight:700; font-size:12px; font-family:'Space Grotesk',sans-serif; color:white; box-shadow:0 2px 8px rgba(0,0,0,0.25); white-space:nowrap; }
   .chip-active { background:#005f9d !important; color:white !important; }
   .chip-inactive { background:#edeeee; color:#404751; }
@@ -69,7 +75,7 @@
       <a class="tab-link tab-inactive font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg hover:bg-surface-container-low" data-tab="prices">Prices</a>
       <a class="tab-link tab-inactive font-headline font-semibold tracking-tight py-2 px-4 cursor-pointer transition-colors rounded-lg hover:bg-surface-container-low" data-tab="trends">Trends</a>
     </nav>
-    <span id="data-status" class="text-xs bg-surface-container px-3 py-1.5 rounded-full text-on-surface-variant">Loading data…</span>
+    <span id="data-status" class="hidden md:inline text-xs bg-surface-container px-3 py-1.5 rounded-full text-on-surface-variant">Loading data…</span>
   </div>
 </header>
 
@@ -82,22 +88,22 @@
 
     <!-- Search Hero -->
     <div id="search-hero">
-      <section class="relative min-h-[580px] flex items-center justify-center overflow-hidden">
+      <section class="relative min-h-[420px] md:min-h-[580px] flex items-center justify-center overflow-hidden pb-20 md:pb-0">
         <div class="absolute inset-0">
           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-surface/60 to-surface z-10"></div>
           <img src="hero-bg.png" alt="" class="w-full h-full object-cover opacity-90"/>
         </div>
-        <div class="relative z-20 max-w-2xl mx-auto px-6 text-center w-full">
-          <h1 class="font-headline font-bold text-5xl text-on-surface tracking-tight mb-3">Find cheap fuel near you</h1>
-          <p class="text-on-surface-variant text-lg mb-10">Enter your address or suburb to see live prices nearby</p>
+        <div class="relative z-20 max-w-2xl mx-auto px-4 md:px-6 text-center w-full">
+          <h1 class="font-headline font-bold text-3xl md:text-5xl text-on-surface tracking-tight mb-2 md:mb-3">Find cheap fuel near you</h1>
+          <p class="text-on-surface-variant text-base md:text-lg mb-6 md:mb-10">Enter your address or suburb to see live prices nearby</p>
 
-          <div class="glass-panel w-full rounded-full p-2 shadow-lg border border-white/30 mb-6 relative">
+          <div class="glass-panel w-full rounded-2xl md:rounded-full p-2 shadow-lg border border-white/30 mb-4 md:mb-6 relative">
             <div class="flex gap-2">
               <div class="relative flex-1">
-                <span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary">location_on</span>
-                <input id="search-input" class="w-full pl-14 pr-4 py-4 bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-outline text-lg" placeholder="e.g. Narangba QLD 4504" type="text" autocomplete="off"/>
+                <span class="material-symbols-outlined absolute left-4 md:left-5 top-1/2 -translate-y-1/2 text-primary">location_on</span>
+                <input id="search-input" class="w-full pl-12 md:pl-14 pr-3 py-3 md:py-4 bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-outline text-base md:text-lg" placeholder="Suburb, postcode or address" type="text" autocomplete="off"/>
               </div>
-              <button id="search-btn" class="bg-gradient-to-r from-primary to-primary-container text-white px-8 py-4 rounded-full font-headline font-bold hover:opacity-90 transition-all shadow-md whitespace-nowrap">
+              <button id="search-btn" class="bg-gradient-to-r from-primary to-primary-container text-white px-5 md:px-8 py-3 md:py-4 rounded-xl md:rounded-full font-headline font-bold hover:opacity-90 transition-all shadow-md whitespace-nowrap text-sm md:text-base">
                 Find Fuel
               </button>
             </div>
@@ -134,34 +140,37 @@
 
     <!-- Map Results (after search) -->
     <div id="map-results" class="hidden">
-      <div class="max-w-7xl mx-auto px-6 py-6">
-        <!-- Compact search bar -->
-        <div class="flex gap-3 mb-6 items-center">
-          <button id="back-btn" class="text-primary flex items-center gap-1 font-semibold hover:underline shrink-0">
-            <span class="material-symbols-outlined">arrow_back</span>
-          </button>
-          <div class="glass-panel flex-1 rounded-full p-1.5 shadow border border-white/20 flex gap-2">
-            <div class="relative flex-1">
-              <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-primary text-lg">location_on</span>
-              <input id="results-input" class="w-full pl-11 pr-3 py-3 bg-transparent border-none focus:ring-0 text-on-surface text-sm" type="text"/>
+      <div class="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-6 pb-24 md:pb-6">
+        <!-- Compact search bar: stacks on mobile -->
+        <div class="flex flex-col gap-2 md:flex-row md:gap-3 mb-3 md:mb-6 md:items-center">
+          <div class="flex gap-2 items-center">
+            <button id="back-btn" class="text-primary flex items-center gap-1 font-semibold hover:underline shrink-0">
+              <span class="material-symbols-outlined">arrow_back</span>
+            </button>
+            <div class="glass-panel flex-1 rounded-full p-1.5 shadow border border-white/20 flex gap-2">
+              <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-primary text-lg">location_on</span>
+                <input id="results-input" class="w-full pl-11 pr-3 py-2.5 md:py-3 bg-transparent border-none focus:ring-0 text-on-surface text-sm" type="text"/>
+              </div>
+              <button id="results-search-btn" class="bg-primary text-white px-4 md:px-5 py-2 md:py-2.5 rounded-full font-headline font-bold text-sm">Search</button>
             </div>
-            <button id="results-search-btn" class="bg-primary text-white px-5 py-2.5 rounded-full font-headline font-bold text-sm">Search</button>
           </div>
-          <div class="flex bg-surface-container-low p-1 rounded-full gap-1 shrink-0" id="map-fuel-chips">
-            <button class="map-fuel-chip chip-active px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="">All</button>
-            <button class="map-fuel-chip chip-inactive px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="E10">E10</button>
-            <button class="map-fuel-chip chip-inactive px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="U91">U91</button>
-            <button class="map-fuel-chip chip-inactive px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="U95">U95</button>
-            <button class="map-fuel-chip chip-inactive px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="U98">U98</button>
-            <button class="map-fuel-chip chip-inactive px-4 py-2 rounded-full text-sm font-medium transition-colors" data-fuel="Diesel">Diesel</button>
+          <!-- Fuel chips: scrollable on mobile -->
+          <div class="flex overflow-x-auto gap-1.5 pb-1 md:pb-0 scrollbar-none shrink-0" id="map-fuel-chips" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
+            <button class="map-fuel-chip chip-active px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap" data-fuel="">All</button>
+            <button class="map-fuel-chip chip-inactive px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap" data-fuel="E10">E10</button>
+            <button class="map-fuel-chip chip-inactive px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap" data-fuel="U91">U91</button>
+            <button class="map-fuel-chip chip-inactive px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap" data-fuel="U95">U95</button>
+            <button class="map-fuel-chip chip-inactive px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap" data-fuel="U98">U98</button>
+            <button class="map-fuel-chip chip-inactive px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap" data-fuel="Diesel">Diesel</button>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-3 md:gap-6">
           <!-- Map -->
           <div class="lg:col-span-3">
             <div id="leaflet-map"></div>
-            <div class="flex gap-4 mt-3 items-center text-xs text-on-surface-variant">
+            <div class="flex gap-4 mt-2 items-center text-xs text-on-surface-variant">
               Price indicator:
               <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Cheap</span>
               <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Average</span>
@@ -170,15 +179,15 @@
           </div>
           <!-- Station list -->
           <div class="lg:col-span-2 flex flex-col">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="font-headline font-bold text-lg" id="results-count">Searching…</h3>
+            <div class="flex items-center justify-between mb-2 md:mb-3">
+              <h3 class="font-headline font-bold text-base md:text-lg" id="results-count">Searching…</h3>
               <select id="results-sort" class="text-xs bg-surface-container border-none rounded-full px-3 py-1.5 focus:ring-primary">
                 <option value="price">Cheapest first</option>
                 <option value="name">By station</option>
               </select>
             </div>
-            <div id="station-list" class="space-y-2 overflow-y-auto flex-1 pr-1" style="max-height:440px"></div>
-            <button id="go-prices-btn" class="mt-4 text-primary font-semibold text-sm hover:underline text-center">View full comparison →</button>
+            <div id="station-list" class="space-y-2 overflow-y-auto flex-1 pr-1" style="max-height:55vh"></div>
+            <button id="go-prices-btn" class="mt-3 text-primary font-semibold text-sm hover:underline text-center">View full comparison →</button>
           </div>
         </div>
       </div>
@@ -189,12 +198,12 @@
   <!-- VIEW: PRICES                           -->
   <!-- ══════════════════════════════════════ -->
   <div id="view-prices" class="view hidden">
-    <div class="max-w-7xl mx-auto px-6 py-8">
-      <h1 class="font-headline font-bold text-3xl mb-1">Fuel Price Comparison</h1>
-      <p class="text-on-surface-variant text-sm mb-6" id="prices-updated">Loading QLD fuel prices…</p>
+    <div class="max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-8 pb-24 md:pb-8">
+      <h1 class="font-headline font-bold text-2xl md:text-3xl mb-1">Fuel Price Comparison</h1>
+      <p class="text-on-surface-variant text-xs md:text-sm mb-4 md:mb-6" id="prices-updated">Loading QLD fuel prices…</p>
 
       <!-- Filters card -->
-      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-6 space-y-4">
+      <div class="bg-surface-container-lowest rounded-2xl p-4 md:p-6 shadow-sm mb-4 md:mb-6 space-y-3 md:space-y-4">
         <div class="flex flex-wrap items-center gap-3">
           <span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Fuel type:</span>
           <div class="flex flex-wrap gap-2" id="fuel-chips">
@@ -206,10 +215,10 @@
             <button class="fuel-chip chip-inactive px-4 py-1.5 rounded-full text-sm font-medium transition-colors" data-fuel="Diesel">Diesel</button>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-3">
           <span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant shrink-0">Brand:</span>
-          <div class="flex flex-wrap gap-2" id="vendor-chips">
-            <button class="vendor-chip chip-active px-4 py-1.5 rounded-full text-sm font-medium transition-colors" data-vendor="all">All</button>
+          <div class="flex overflow-x-auto gap-2 pb-1" id="vendor-chips" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
+            <button class="vendor-chip chip-active px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap" data-vendor="all">All</button>
           </div>
         </div>
         <div class="flex flex-wrap gap-3 items-center">
@@ -235,13 +244,13 @@
           <table class="w-full text-sm">
             <thead>
               <tr class="bg-surface-container-low">
-                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">#</th>
-                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Station</th>
-                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Brand</th>
-                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Suburb</th>
-                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Dist</th>
-                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Fuel</th>
-                <th class="text-right px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Price ¢/L</th>
+                <th class="hidden md:table-cell text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">#</th>
+                <th class="text-left px-4 md:px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Station</th>
+                <th class="hidden md:table-cell text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Brand</th>
+                <th class="hidden md:table-cell text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Suburb</th>
+                <th class="text-left px-3 md:px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Dist</th>
+                <th class="text-left px-3 md:px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Fuel</th>
+                <th class="text-right px-4 md:px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">¢/L</th>
               </tr>
             </thead>
             <tbody id="prices-body">
@@ -261,11 +270,11 @@
   <!-- VIEW: TRENDS                           -->
   <!-- ══════════════════════════════════════ -->
   <div id="view-trends" class="view hidden">
-    <div class="max-w-7xl mx-auto px-6 py-8">
-      <h1 class="font-headline font-bold text-3xl mb-1">Fuel Price Trends</h1>
-      <p class="text-on-surface-variant text-sm mb-8">QLD price averages and patterns from the latest data</p>
+    <div class="max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-8 pb-24 md:pb-8">
+      <h1 class="font-headline font-bold text-2xl md:text-3xl mb-1">Fuel Price Trends</h1>
+      <p class="text-on-surface-variant text-xs md:text-sm mb-5 md:mb-8">QLD price averages and patterns from the latest data</p>
 
-      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-6">
+      <div class="bg-surface-container-lowest rounded-2xl p-4 md:p-6 shadow-sm mb-4 md:mb-6">
         <h2 class="font-headline font-bold text-lg mb-4">Average Price by Fuel Type</h2>
         <canvas id="chart-avg-fuel" height="80"></canvas>
       </div>
@@ -612,13 +621,13 @@ function renderPrices() {
     const pct = r.price < 185 ? 'text-green-600' : r.price < 200 ? 'text-amber-600' : 'text-red-600';
     const dist = (searchLoc && r.lat && r.lng) ? fmtDist(haversineKm(searchLoc.lat, searchLoc.lng, r.lat, r.lng)) : '—';
     return `<tr class="border-t border-surface-container-high cursor-pointer">
-      <td class="px-5 py-3.5 text-on-surface-variant text-xs">${i+1}</td>
-      <td class="px-5 py-3.5"><p class="font-semibold">${r.name||r.brand}</p><p class="text-on-surface-variant text-xs">${r.address}</p></td>
-      <td class="px-5 py-3.5"><span class="bg-surface-container px-2 py-0.5 rounded-full text-xs">${r.brand}</span></td>
-      <td class="px-5 py-3.5 text-on-surface-variant text-sm">${r.suburb}</td>
-      <td class="px-5 py-3.5 text-on-surface-variant text-sm">${dist}</td>
-      <td class="px-5 py-3.5"><span class="bg-surface-container px-2 py-0.5 rounded-full text-xs">${r.fuelType}</span></td>
-      <td class="px-5 py-3.5 text-right font-headline font-black text-lg ${pct}">${r.price.toFixed(1)}</td>
+      <td class="hidden md:table-cell px-5 py-3 text-on-surface-variant text-xs">${i+1}</td>
+      <td class="px-4 md:px-5 py-3"><p class="font-semibold text-sm">${r.name||r.brand}</p><p class="text-on-surface-variant text-xs">${r.address}</p></td>
+      <td class="hidden md:table-cell px-5 py-3"><span class="bg-surface-container px-2 py-0.5 rounded-full text-xs">${r.brand}</span></td>
+      <td class="hidden md:table-cell px-5 py-3 text-on-surface-variant text-sm">${r.suburb}</td>
+      <td class="px-3 md:px-5 py-3 text-on-surface-variant text-xs">${dist}</td>
+      <td class="px-3 md:px-5 py-3"><span class="bg-surface-container px-2 py-0.5 rounded-full text-xs">${r.fuelType}</span></td>
+      <td class="px-4 md:px-5 py-3 text-right font-headline font-black text-base md:text-lg ${pct}">${r.price.toFixed(1)}</td>
     </tr>`;
   }).join('');
 }
