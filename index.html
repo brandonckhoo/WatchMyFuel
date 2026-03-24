@@ -494,13 +494,13 @@ function brandLogoHtml(brand, size=32) {
   const bc = brandColor(brand);
   const init = brandInitials(brand);
   const textColor = brand === 'Shell' ? '#374151' : 'white';
-  const base = `background:${bc};color:${textColor};width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.28)}px;font-weight:800;font-family:'Space Grotesk',sans-serif;flex-shrink:0;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.2)`;
+  const base = `background:${bc};color:${textColor};width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.28)}px;font-weight:800;font-family:'Space Grotesk',sans-serif;flex-shrink:0;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.2);overflow:hidden`;
   const domain = BRAND_DOMAINS[brand];
   if (!domain) return `<div style="${base}">${init}</div>`;
   const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
   const s = size - 6;
   return `<div style="${base};background:white;border-color:${bc}">
-    <img src="${logoUrl}" width="${s}" height="${s}" style="object-fit:contain;border-radius:4px"
+    <img src="${logoUrl}" style="width:${s}px;height:${s}px;max-width:none;object-fit:contain;border-radius:4px;display:block"
       onerror="this.parentNode.style.background='${bc}';this.parentNode.style.borderColor='white';this.outerHTML='<span style=\\'color:${textColor};font-size:${Math.round(size*0.28)}px;font-weight:800;font-family:Space Grotesk,sans-serif\\'>${init}</span>'"
     />
   </div>`;
