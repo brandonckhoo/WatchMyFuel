@@ -141,8 +141,8 @@
     <!-- Map Results (after search) -->
     <div id="map-results" class="hidden">
       <div class="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-6 pb-24 md:pb-6">
-        <!-- Compact search bar: stacks on mobile -->
-        <div class="flex flex-col gap-2 md:flex-row md:gap-3 mb-3 md:mb-6 md:items-center">
+        <!-- Compact search bar: always stacked -->
+        <div class="flex flex-col gap-2 mb-3 md:mb-6">
           <div class="flex gap-2 items-center">
             <button id="back-btn" class="text-primary flex items-center gap-1 font-semibold hover:underline shrink-0">
               <span class="material-symbols-outlined">arrow_back</span>
@@ -155,8 +155,8 @@
               <button id="results-search-btn" class="bg-primary text-white px-4 md:px-5 py-2 md:py-2.5 rounded-full font-headline font-bold text-sm">Search</button>
             </div>
           </div>
-          <!-- Fuel chips: scrollable on mobile -->
-          <div class="flex overflow-x-auto gap-1.5 pb-1 md:pb-0 scrollbar-none shrink-0" id="map-fuel-chips" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
+          <!-- Fuel chips: scrollable -->
+          <div class="flex overflow-x-auto gap-1.5 pb-1 scrollbar-none pl-9" id="map-fuel-chips" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
             <button class="map-fuel-chip chip-active px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap" data-fuel="">All</button>
             <button class="map-fuel-chip chip-inactive px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap" data-fuel="E10">E10</button>
             <button class="map-fuel-chip chip-inactive px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap" data-fuel="U91">U91</button>
