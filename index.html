@@ -541,7 +541,7 @@ function initMap(lat, lng, stations) {
     const icon = L.divIcon({
       className:'', iconAnchor:[20,42],
       html:`<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-        ${brandLogoHtml(s.brand, 32)}
+        ${brandLogoHtml(s.brand, 16)}
         <div class="price-pin" style="background:${priceColor}">${s.price.toFixed(1)}</div>
       </div>`
     });
@@ -565,7 +565,7 @@ function renderStationList(stations) {
     return `<div class="station-card bg-white rounded-xl p-4 shadow-sm transition-colors">
       <div class="flex justify-between items-start gap-3">
         <div class="min-w-0 flex-1 flex items-start gap-3">
-          ${brandLogoHtml(s.brand, 36)}
+          ${brandLogoHtml(s.brand, 18)}
           <div class="min-w-0 flex-1">
           <p class="font-headline font-bold text-on-surface truncate">${s.brand}</p>
           <p class="text-on-surface-variant text-xs truncate mb-1">${s.name}</p>
