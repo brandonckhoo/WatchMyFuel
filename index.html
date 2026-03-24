@@ -200,7 +200,12 @@
   <div id="view-prices" class="view hidden">
     <div class="max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-8 pb-24 md:pb-8">
       <h1 class="font-headline font-bold text-2xl md:text-3xl mb-1">Fuel Price Comparison</h1>
-      <p class="text-on-surface-variant text-xs md:text-sm mb-4 md:mb-6" id="prices-updated">Loading QLD fuel prices…</p>
+      <p class="text-on-surface-variant text-xs md:text-sm mb-2" id="prices-updated">Loading QLD fuel prices…</p>
+      <div id="prices-location-banner" class="hidden mb-4 md:mb-6 flex items-center gap-2 text-sm bg-primary/8 text-primary rounded-xl px-4 py-2.5 w-fit">
+        <span class="material-symbols-outlined text-base">location_on</span>
+        <span id="prices-location-text"></span>
+        <button onclick="clearSearchLocation()" class="ml-2 text-on-surface-variant hover:text-error text-xs underline">Clear</button>
+      </div>
 
       <!-- Filters card -->
       <div class="bg-surface-container-lowest rounded-2xl p-4 md:p-6 shadow-sm mb-4 md:mb-6 space-y-3 md:space-y-4">
@@ -315,8 +320,14 @@ let charts = {};
 let selectedFuel = 'all';
 let selectedVendor = 'all';
 let selectedRadius = 10;
-let searchLoc = null; // last geocoded search location
+let searchLoc = null;   // last geocoded search location
+let searchQuery = '';   // last search query string
 let recentSearches = JSON.parse(sessionStorage.getItem('fw-recent') || '[]');
+
+function clearSearchLocation() {
+  searchLoc = null; searchQuery = '';
+  renderPrices();
+}
 
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
@@ -406,6 +417,7 @@ async function doSearch(query) {
 
   const loc = await geocode(query);
   searchLoc = loc;
+  searchQuery = query;
   const fuelFilter = document.querySelector('.map-fuel-chip.chip-active')?.dataset.fuel || '';
 
   let results = allData.filter(d =>
@@ -574,7 +586,21 @@ function renderStationList(stations) {
 
 // ── PRICES TAB ─────────────────────────────────────────────────
 function renderPrices() {
+  // Show/update location banner
+  const banner = document.getElementById('prices-location-banner');
+  const bannerText = document.getElementById('prices-location-text');
+  if (searchLoc && searchQuery) {
+    banner.classList.remove('hidden');
+    bannerText.textContent = `Near "${searchQuery}" · ${selectedRadius}km radius`;
+  } else {
+    banner.classList.add('hidden');
+  }
+
   let data = [...allData];
+  // Filter by search radius when a location is set
+  if (searchLoc) {
+    data = data.filter(d => d.lat && d.lng && haversineKm(searchLoc.lat, searchLoc.lng, d.lat, d.lng) <= selectedRadius);
+  }
   if (selectedFuel !== 'all') data = data.filter(d => d.fuelType === selectedFuel);
   if (selectedVendor !== 'all') data = data.filter(d => d.brand === selectedVendor);
 
