@@ -388,14 +388,17 @@ async function doSearch(query) {
 
   const loc = await geocode(query);
   const fuelFilter = document.querySelector('.map-fuel-chip.chip-active')?.dataset.fuel || '';
-  const q = query.split(',')[0].trim().toLowerCase();
+
+  // Filter by distance from geocoded location using Haversine
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
 
   let results = allData.filter(d =>
-    d.suburb.toLowerCase().includes(q) ||
-    d.name.toLowerCase().includes(q) ||
-    d.postcode === q
+    d.lat && d.lng && haversineKm(loc.lat, loc.lng, d.lat, d.lng) <= selectedRadius
   );
-  if (results.length < 10) results = allData.slice(0, 300); // fallback
   if (fuelFilter) results = results.filter(d => d.fuelType === fuelFilter);
 
   // Deduplicate: keep cheapest per station+fueltype
