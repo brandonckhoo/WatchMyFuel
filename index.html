@@ -239,12 +239,13 @@
                 <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Station</th>
                 <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Brand</th>
                 <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Suburb</th>
+                <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Dist</th>
                 <th class="text-left px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Fuel</th>
                 <th class="text-right px-5 py-3.5 font-headline font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Price ¢/L</th>
               </tr>
             </thead>
             <tbody id="prices-body">
-              <tr><td colspan="6" class="text-center py-16 text-on-surface-variant">Loading…</td></tr>
+              <tr><td colspan="7" class="text-center py-16 text-on-surface-variant">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -305,7 +306,15 @@ let charts = {};
 let selectedFuel = 'all';
 let selectedVendor = 'all';
 let selectedRadius = 10;
+let searchLoc = null; // last geocoded search location
 let recentSearches = JSON.parse(sessionStorage.getItem('fw-recent') || '[]');
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function fmtDist(km) { return km < 1 ? `${Math.round(km*1000)}m` : `${km.toFixed(1)}km`; }
 
 const ALLOWED_FUELS = ['E10','U91','U95','U98','Diesel'];
 
@@ -387,14 +396,8 @@ async function doSearch(query) {
   setStatus('Locating…');
 
   const loc = await geocode(query);
+  searchLoc = loc;
   const fuelFilter = document.querySelector('.map-fuel-chip.chip-active')?.dataset.fuel || '';
-
-  // Filter by distance from geocoded location using Haversine
-  function haversineKm(lat1, lng1, lat2, lng2) {
-    const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  }
 
   let results = allData.filter(d =>
     d.lat && d.lng && haversineKm(loc.lat, loc.lng, d.lat, d.lng) <= selectedRadius
@@ -521,8 +524,9 @@ function initMap(lat, lng, stations) {
       </div>`
     });
     const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address + ', ' + s.suburb + ' QLD')}`;
+    const distStr = searchLoc ? ` · ${fmtDist(haversineKm(searchLoc.lat, searchLoc.lng, s.lat, s.lng))} away` : '';
     L.marker([s.lat,s.lng],{icon}).addTo(leafletMap)
-      .bindPopup(`<b>${s.name}</b><br><span style="color:#707882;font-size:12px">${s.address}, ${s.suburb}</span><br><b>${s.fuelType}: ${s.price.toFixed(1)}¢/L</b><br><a href="${mapsLink}" target="_blank" style="color:#005f9d;font-size:12px">Open in Google Maps →</a>`);
+      .bindPopup(`<b>${s.name}</b><br><span style="color:#707882;font-size:12px">${s.address}, ${s.suburb}${distStr}</span><br><b>${s.fuelType}: ${s.price.toFixed(1)}¢/L</b><br><a href="${mapsLink}" target="_blank" style="color:#005f9d;font-size:12px">Open in Google Maps →</a>`);
   });
 }
 
@@ -546,6 +550,7 @@ function renderStationList(stations) {
           <a href="${mapsUrl}" target="_blank" rel="noopener" class="text-primary text-xs hover:underline flex items-center gap-0.5">
             <span class="material-symbols-outlined" style="font-size:13px">location_on</span>${s.address ? s.address + ', ' : ''}${s.suburb}
           </a>
+          ${searchLoc && s.lat && s.lng ? `<span class="text-xs text-on-surface-variant mt-0.5">${fmtDist(haversineKm(searchLoc.lat, searchLoc.lng, s.lat, s.lng))} away</span>` : ''}
           </div>
         </div>
         <div class="flex flex-col items-end shrink-0">
@@ -604,11 +609,13 @@ function renderPrices() {
   document.getElementById('prices-total').textContent = data.length;
   document.getElementById('prices-body').innerHTML = shown.map((r,i) => {
     const pct = r.price < 185 ? 'text-green-600' : r.price < 200 ? 'text-amber-600' : 'text-red-600';
+    const dist = (searchLoc && r.lat && r.lng) ? fmtDist(haversineKm(searchLoc.lat, searchLoc.lng, r.lat, r.lng)) : '—';
     return `<tr class="border-t border-surface-container-high cursor-pointer">
       <td class="px-5 py-3.5 text-on-surface-variant text-xs">${i+1}</td>
       <td class="px-5 py-3.5"><p class="font-semibold">${r.name||r.brand}</p><p class="text-on-surface-variant text-xs">${r.address}</p></td>
       <td class="px-5 py-3.5"><span class="bg-surface-container px-2 py-0.5 rounded-full text-xs">${r.brand}</span></td>
       <td class="px-5 py-3.5 text-on-surface-variant text-sm">${r.suburb}</td>
+      <td class="px-5 py-3.5 text-on-surface-variant text-sm">${dist}</td>
       <td class="px-5 py-3.5"><span class="bg-surface-container px-2 py-0.5 rounded-full text-xs">${r.fuelType}</span></td>
       <td class="px-5 py-3.5 text-right font-headline font-black text-lg ${pct}">${r.price.toFixed(1)}</td>
     </tr>`;
