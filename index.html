@@ -634,7 +634,7 @@ function renderPrices() {
   vc.querySelectorAll('[data-vendor]:not([data-vendor="all"])').forEach(c=>c.remove());
   brands.forEach(brand => {
     const btn = document.createElement('button');
-    btn.className = `vendor-chip ${selectedVendor===brand?'chip-active':'chip-inactive'} px-4 py-1.5 rounded-full text-sm font-medium transition-colors`;
+    btn.className = `vendor-chip ${selectedVendor===brand?'chip-active':'chip-inactive'} px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap`;
     btn.dataset.vendor = brand; btn.textContent = brand;
     btn.addEventListener('click', () => { selectedVendor = brand; refreshVendorChips(); renderPrices(); });
     vc.appendChild(btn);
