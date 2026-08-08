@@ -1,5 +1,8 @@
 const BASE = 'https://fppdirectapi-prod.fuelpricesqld.com.au';
-const TOKEN = 'FPDAPI SubscriberToken=07e05b7e-684d-4b40-a334-e99a6b618b1e';
+// Set FUEL_API_TOKEN in the Vercel project to override the committed fallback.
+const TOKEN = process.env.FUEL_API_TOKEN
+  ? `FPDAPI SubscriberToken=${process.env.FUEL_API_TOKEN}`
+  : 'FPDAPI SubscriberToken=07e05b7e-684d-4b40-a334-e99a6b618b1e';
 const PARAMS = 'countryId=21&geoRegionLevel=3&geoRegionId=1';
 
 // FuelId → display name (from /Subscriber/GetCountryFuelTypes)
